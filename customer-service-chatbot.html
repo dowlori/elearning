@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Service Training Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .customer-info {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .scenario-info {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .message.customer {
+            justify-content: flex-start;
+        }
+        
+        .message.employee {
+            justify-content: flex-end;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .customer .message-bubble {
+            background: #ff6b6b;
+            color: white;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .employee .message-bubble {
+            background: #4dabf7;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .system-message {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        
+        #messageInput:focus {
+            border-color: #4dabf7;
+        }
+        
+        #sendButton {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4dabf7, #339af0);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+        }
+        
+        #sendButton:hover {
+            transform: translateY(-1px);
+        }
+        
+        #sendButton:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .scenario-controls {
+            padding: 10px 20px;
+            background: #f1f3f4;
+            border-top: 1px solid #e1e8ed;
+            text-align: center;
+        }
+        
+        .scenario-btn {
+            margin: 5px;
+            padding: 8px 16px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .scenario-btn:hover {
+            background: #5a6268;
+        }
+        
+        .evaluation {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+        
+        .evaluation h4 {
+            color: #1976d2;
+            margin-bottom: 8px;
+        }
+        
+        .score {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="customer-info">Customer: Sarah M.</div>
+            <div class="scenario-info">Billing Issue - Product Not Working</div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="system-message">Customer service training simulation started. Handle this situation professionally.</div>
+        </div>
+        
+        <div class="chat-input">
+            <div class="input-container">
+                <input type="text" id="messageInput" placeholder="Type your response as a customer service representative..." maxlength="200">
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+        
+        <div class="scenario-controls">
+            <button class="scenario-btn" onclick="startScenario('billing')">Billing Issue</button>
+            <button class="scenario-btn" onclick="startScenario('defective')">Defective Product</button>
+            <button class="scenario-btn" onclick="startScenario('shipping')">Shipping Delay</button>
+            <button class="scenario-btn" onclick="resetChat()">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let currentScenario = 'billing';
+        let messageCount = 0;
+        let customerMoodLevel = 5; // 1-10 scale, higher = angrier
+        let employeeResponses = [];
+        
+        const scenarios = {
+            billing: {
+                name: 'Billing Issue',
+                customer: 'Sarah M.',
+                initialMessage: "I am absolutely FURIOUS! You charged my card $299 for some premium service I NEVER signed up for! This is fraud and I want my money back RIGHT NOW!",
+                context: "Customer was auto-enrolled in premium service after free trial expired",
+                triggers: ['refund', 'money back', 'cancel', 'fraud', 'never signed up']
+            },
+            defective: {
+                name: 'Defective Product',
+                customer: 'Mike R.',
+                initialMessage: "This is ridiculous! The laptop I bought last week is completely broken! The screen is cracked and it won't even turn on! I paid $800 for this piece of junk!",
+                context: "Product may have been damaged during shipping",
+                triggers: ['replacement', 'refund', 'broken', 'defective', 'warranty']
+            },
+            shipping: {
+                name: 'Shipping Delay',
+                customer: 'Jennifer L.',
+                initialMessage: "WHERE IS MY ORDER?! It was supposed to arrive 3 days ago and I haven't heard anything from you people! This was for my daughter's birthday and now it's RUINED!",
+                context: "Package delayed due to weather, tracking shows it's at local facility",
+                triggers: ['tracking', 'delay', 'sorry', 'expedite', 'priority shipping']
+            }
+        };
+        
+        function addMessage(sender, text, isSystem = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            
+            if (isSystem) {
+                const systemDiv = document.createElement('div');
+                systemDiv.className = 'system-message';
+                systemDiv.textContent = text;
+                messagesContainer.appendChild(systemDiv);
+            } else {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+                
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'message-bubble';
+                bubbleDiv.textContent = text;
+                
+                messageDiv.appendChild(bubbleDiv);
+                messagesContainer.appendChild(messageDiv);
+            }
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function generateCustomerResponse(employeeMessage) {
+            const scenario = scenarios[currentScenario];
+            const lowerMessage = employeeMessage.toLowerCase();
+            
+            // Check for positive resolution keywords
+            const positiveKeywords = ['sorry', 'apologize', 'understand', 'help', 'resolve', 'fix'];
+            const resolutionKeywords = scenario.triggers;
+            
+            let positiveScore = positiveKeywords.filter(word => lowerMessage.includes(word)).length;
+            let resolutionScore = resolutionKeywords.filter(word => lowerMessage.includes(word)).length;
+            
+            // Adjust customer mood based on response quality
+            if (positiveScore >= 2 && resolutionScore >= 1) {
+                customerMoodLevel = Math.max(1, customerMoodLevel - 2);
+            } else if (positiveScore >= 1 || resolutionScore >= 1) {
+                customerMoodLevel = Math.max(1, customerMoodLevel - 1);
+            } else if (lowerMessage.includes('no') || lowerMessage.includes('cannot') || lowerMessage.includes("can't")) {
+                customerMoodLevel = Math.min(10, customerMoodLevel + 1);
+            }
+            
+            // Generate response based on mood and scenario
+            let responses = [];
+            
+            if (customerMoodLevel <= 2) {
+                responses = [
+                    "Thank you for understanding. I appreciate you taking the time to help me with this.",
+                    "That sounds reasonable. I'm glad we could work this out.",
+                    "Okay, I feel much better about this situation now. Thank you for your help."
+                ];
+            } else if (customerMoodLevel <= 4) {
+                responses = [
+                    "Well, that's a start I guess. But this whole situation has been very frustrating.",
+                    "I appreciate that, but I still think this could have been handled better from the start.",
+                    "Fine, but I expect this to be resolved quickly. I shouldn't have to deal with this."
+                ];
+            } else if (customerMoodLevel <= 7) {
+                responses = [
+                    "That's not good enough! I want to speak to your manager!",
+                    "I'm still not satisfied with this response. What else can you do?",
+                    "This is taking way too long. I have other things to do!"
+                ];
+            } else {
+                responses = [
+                    "Are you kidding me?! That's the best you can do?!",
+                    "This is absolutely unacceptable! I'm going to report this company!",
+                    "I can't believe how terrible your customer service is!"
+                ];
+            }
+            
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        
+        function evaluateResponse(response) {
+            const evaluation = {
+                empathy: 0,
+                professionalism: 0,
+                problemSolving: 0,
+                overall: 0
+            };
+            
+            const lowerResponse = response.toLowerCase();
+            
+            // Empathy scoring
+            const empathyWords = ['sorry', 'apologize', 'understand', 'frustrating', 'appreciate'];
+            evaluation.empathy = Math.min(10, empathyWords.filter(word => lowerResponse.includes(word)).length * 2);
+            
+            // Professionalism scoring
+            const professionalWords = ['sir', 'madam', 'please', 'thank you', 'certainly'];
+            const unprofessionalWords = ['no', "can't", 'impossible', 'not my fault'];
+            evaluation.professionalism = Math.min(10, professionalWords.filter(word => lowerResponse.includes(word)).length * 2);
+            evaluation.professionalism -= unprofessionalWords.filter(word => lowerResponse.includes(word)).length;
+            evaluation.professionalism = Math.max(0, evaluation.professionalism);
+            
+            // Problem-solving scoring
+            const solutionWords = scenarios[currentScenario].triggers;
+            evaluation.problemSolving = Math.min(10, solutionWords.filter(word => lowerResponse.includes(word)).length * 3);
+            
+            evaluation.overall = Math.round((evaluation.empathy + evaluation.professionalism + evaluation.problemSolving) / 3);
+            
+            return evaluation;
+        }
+        
+        function showEvaluation(evaluation) {
+            const evalDiv = document.createElement('div');
+            evalDiv.className = 'evaluation';
+            evalDiv.innerHTML = `
+                <h4>Response Evaluation</h4>
+                <div>Empathy: <span class="score">${evaluation.empathy}/10</span></div>
+                <div>Professionalism: <span class="score">${evaluation.professionalism}/10</span></div>
+                <div>Problem Solving: <span class="score">${evaluation.problemSolving}/10</span></div>
+                <div>Overall Score: <span class="score">${evaluation.overall}/10</span></div>
+            `;
+            
+            document.getElementById('chatMessages').appendChild(evalDiv);
+            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+        }
+        
+        function startScenario(scenarioType) {
+            currentScenario = scenarioType;
+            const scenario = scenarios[scenarioType];
+            
+            // Update header
+            document.querySelector('.customer-info').textContent = `Customer: ${scenario.customer}`;
+            document.querySelector('.scenario-info').textContent = scenario.name;
+            
+            // Clear chat and start
+            resetChat();
+            setTimeout(() => {
+                addMessage('customer', scenario.initialMessage);
+            }, 1000);
+        }
+        
+        function resetChat() {
+            document.getElementById('chatMessages').innerHTML = '<div class="system-message">Customer service training simulation started. Handle this situation professionally.</div>';
+            messageCount = 0;
+            customerMoodLevel = 5;
+            employeeResponses = [];
+        }
+        
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        document.getElementById('sendButton').addEventListener('click', sendMessage);
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add employee message
+            addMessage('employee', message);
+            employeeResponses.push(message);
+            
+            // Evaluate the response
+            const evaluation = evaluateResponse(message);
+            
+            input.value = '';
+            messageCount++;
+            
+            // Generate customer response after a delay
+            setTimeout(() => {
+                if (messageCount >= 4 || customerMoodLevel <= 2) {
+                    addMessage('system', 'Training scenario complete!');
+                    showEvaluation(evaluation);
+                } else {
+                    const customerResponse = generateCustomerResponse(message);
+                    addMessage('customer', customerResponse);
+                }
+            }, 1500);
+        }
+        
+        // Start with billing scenario
+        setTimeout(() => {
+            startScenario('billing');
+        }, 500);
+    </script>
+</body>
+</html>
